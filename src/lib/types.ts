@@ -131,6 +131,14 @@ export interface Requisito {
   cert: string;
 }
 
+export interface Regras {
+  cicloAvalMeses: number;
+  minMesesPromocao: number;
+  exigirAvalParaPromocao: boolean;
+  exigirPDIConcluido: boolean;
+  obs: string;
+}
+
 export interface DB {
   familias: Familia[];
   cargos: Cargo[];
@@ -142,6 +150,7 @@ export interface DB {
   sindicatos: Sindicato[];
   requisitos: Requisito[];
   prontidao: Record<string, unknown>;
+  regras: Regras;
 }
 
 export const MOTIVOS_REAJUSTE: Record<MotivoReajuste, { label: string; cor: string }> = {

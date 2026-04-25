@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Avatar, Badge, Button, Card, Modal, Page, Topbar } from '@/components/ui';
-import { colabsAguardandoCCT, fd, fmt } from '@/lib/helpers';
+import { useToast } from '@/components/toast';
+import { colabsAguardandoCCT, fd, fmt, uid } from '@/lib/helpers';
 import { usePCS } from '@/store/use-pcs-store';
 import { useHydratedPCS } from '@/store/use-pcs-hydrated';
 import type { Sindicato } from '@/lib/types';
@@ -12,8 +13,13 @@ export default function CCTPage() {
   const hydrated = useHydratedPCS();
   const db = usePCS(s => s.db);
   const applyCCT = usePCS(s => s.applyCCT);
+  const saveSindicato = usePCS(s => s.saveSindicato);
+  const delSindicato = usePCS(s => s.delSindicato);
+  const toast = useToast();
   const [sindOpen, setSindOpen] = useState<Sindicato | null>(null);
   const [ano, setAno] = useState(new Date().getFullYear());
+  const [crudOpen, setCrudOpen] = useState(false);
+  const [crudEdit, setCrudEdit] = useState<Sindicato | null>(null);
 
   if (!hydrated) return <div className="ct">Carregando…</div>;
 
@@ -25,9 +31,12 @@ export default function CCTPage() {
       <Topbar
         title="Convenções Coletivas (CCT)"
         right={
-          <select className="fs" value={ano} onChange={e => setAno(Number(e.target.value))} style={{ width: 100 }}>
-            {[ano - 1, ano, ano + 1].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <>
+            <select className="fs" value={ano} onChange={e => setAno(Number(e.target.value))} style={{ width: 100 }}>
+              {[ano - 1, ano, ano + 1].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+            <Button size="sm" onClick={() => { setCrudEdit(null); setCrudOpen(true); }}>+ Sindicato</Button>
+          </>
         }
       />
       <Page>
@@ -51,8 +60,14 @@ export default function CCTPage() {
                     ⚠ CCT {ano} não aplicada{atrasNoSind > 0 && ` — ${atrasNoSind} colab(s) atrasado(s)`}
                   </div>
                 )}
-                <div style={{ marginTop: 10 }}>
+                <div style={{ marginTop: 10, display: 'flex', gap: 6 }}>
                   <Button size="sm" onClick={() => setSindOpen(s)}>Aplicar reajuste {ano}</Button>
+                  <Button size="sm" kind="o" onClick={() => { setCrudEdit(s); setCrudOpen(true); }}>Editar</Button>
+                  <Button size="sm" kind="dng" onClick={() => {
+                    const vinculados = db.colabs.filter(c => c.sind === s.id || s.abrangeAreas.includes(c.ar)).length;
+                    if (vinculados) { toast.push(`${vinculados} colab(s) vinculados — desvincule antes`, 'err'); return; }
+                    if (confirm(`Excluir ${s.sigla}?`)) { delSindicato(s.id); toast.push('Sindicato excluído', 'info'); }
+                  }}>×</Button>
                 </div>
               </Card>
             );
@@ -92,9 +107,16 @@ export default function CCTPage() {
         onApply={(perc, data, obs, aplicarColabs) => {
           if (!sindOpen) return;
           const qtd = applyCCT(sindOpen.id, ano, perc, data, obs, aplicarColabs);
-          alert(aplicarColabs ? `${qtd} colaborador(es) reajustado(s)` : 'Histórico CCT registrado');
+          toast.push(aplicarColabs ? `${qtd} colaborador(es) reajustado(s)` : 'Histórico CCT registrado', 'ok');
           setSindOpen(null);
         }}
+      />
+
+      <SindicatoModal
+        open={crudOpen}
+        editing={crudEdit}
+        onClose={() => setCrudOpen(false)}
+        onSave={(s) => { saveSindicato(s); toast.push('Sindicato salvo', 'ok'); setCrudOpen(false); }}
       />
     </>
   );
@@ -170,4 +192,30 @@ function CCTApplyModal({ sind, ano, onClose, onApply }: {
       )}
     </Modal>
   );
+}
+
+function SindicatoModal({ open, editing, onClose, onSave }: { open: boolean; editing: Sindicato | null; onClose: () => void; onSave: (s: Sindicato) => void }) {
+  const [form, setForm] = useState<Sindicato>(empty());
+  useEffect(() => { if (open) setForm(editing ? { ...editing } : empty()); }, [open, editing]);
+  if (!open) return null;
+  const setAreas = (v: string) => setForm(f => ({ ...f, abrangeAreas: v.split(',').map(s => s.trim()).filter(Boolean) }));
+  return (
+    <Modal open={open} title={editing ? `Editar ${editing.sigla}` : 'Novo Sindicato'} onClose={onClose} width={620}
+      footer={<><div style={{ flex: 1 }} /><Button kind="o" onClick={onClose}>Cancelar</Button><Button onClick={() => {
+        if (!form.sigla || !form.nome) { alert('Sigla e nome obrigatórios'); return; }
+        onSave({ ...form, id: form.id || uid() });
+      }}>Salvar</Button></>}
+    >
+      <div className="fr2">
+        <div className="fg"><label className="fl">Sigla</label><input className="fi" value={form.sigla} onChange={e => setForm(f => ({ ...f, sigla: e.target.value }))} /></div>
+        <div className="fg"><label className="fl">Data-base (MM-DD)</label><input className="fi" placeholder="09-01" value={form.dataBase} onChange={e => setForm(f => ({ ...f, dataBase: e.target.value }))} /></div>
+      </div>
+      <div className="fg"><label className="fl">Nome completo</label><input className="fi" value={form.nome} onChange={e => setForm(f => ({ ...f, nome: e.target.value }))} /></div>
+      <div className="fg"><label className="fl">Áreas abrangidas (separadas por vírgula)</label>
+        <input className="fi" value={form.abrangeAreas.join(', ')} onChange={e => setAreas(e.target.value)} />
+      </div>
+      <div className="fg"><label className="fl">Observação</label><textarea className="fta" rows={2} value={form.obs || ''} onChange={e => setForm(f => ({ ...f, obs: e.target.value }))} /></div>
+    </Modal>
+  );
+  function empty(): Sindicato { return { id: '', sigla: '', nome: '', dataBase: '', abrangeAreas: [], historico: [], obs: '' }; }
 }

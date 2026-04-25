@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import type { Colab, DB, MotivoReajuste, PDI, SalHist, Sindicato } from '@/lib/types';
+import type { Aval, Cargo, Colab, DB, Familia, MotivoReajuste, PDI, Regras, SalHist, Sindicato, Vaga } from '@/lib/types';
 import { buildSeedWithSalHist, seedDB } from '@/lib/seed';
 import { uid } from '@/lib/helpers';
 
@@ -33,7 +33,21 @@ interface PCSStore {
   addSalHist: (input: AddSalHistInput) => SalHist | null;
 
   saveSindicato: (s: Sindicato) => void;
+  delSindicato: (id: string) => void;
   applyCCT: (sindId: string, ano: number, perc: number, dataAplicacao: string, obs: string, aplicarEmColabs: boolean) => number;
+
+  saveCargo: (c: Cargo) => Cargo;
+  delCargo: (id: string) => void;
+  saveFamilia: (f: Familia) => Familia;
+  delFamilia: (id: string) => void;
+  saveVaga: (v: Vaga) => Vaga;
+  delVaga: (id: string) => void;
+  saveAval: (a: Aval) => Aval;
+  delAval: (id: string) => void;
+  updateRegras: (r: Regras) => void;
+
+  exportJSON: () => string;
+  importJSON: (json: string) => boolean;
 }
 
 const initialDB = buildSeedWithSalHist(seedDB);
@@ -142,6 +156,66 @@ export const usePCS = create<PCSStore>()(
         },
       })),
 
+      delSindicato: (id) => set(s => ({ db: { ...s.db, sindicatos: s.db.sindicatos.filter(x => x.id !== id) } })),
+
+      saveCargo: (c) => {
+        const id = c.id || uid();
+        const cargo: Cargo = { ...c, id };
+        set(s => {
+          const exists = s.db.cargos.find(x => x.id === id);
+          return { db: { ...s.db, cargos: exists ? s.db.cargos.map(x => x.id === id ? cargo : x) : [...s.db.cargos, cargo] } };
+        });
+        return cargo;
+      },
+      delCargo: (id) => set(s => ({ db: { ...s.db, cargos: s.db.cargos.filter(x => x.id !== id) } })),
+
+      saveFamilia: (f) => {
+        const id = f.id || uid();
+        const fam: Familia = { ...f, id };
+        set(s => {
+          const exists = s.db.familias.find(x => x.id === id);
+          return { db: { ...s.db, familias: exists ? s.db.familias.map(x => x.id === id ? fam : x) : [...s.db.familias, fam] } };
+        });
+        return fam;
+      },
+      delFamilia: (id) => set(s => ({ db: { ...s.db, familias: s.db.familias.filter(x => x.id !== id) } })),
+
+      saveVaga: (v) => {
+        const id = v.id || uid();
+        const vaga: Vaga = { ...v, id };
+        set(s => {
+          const exists = s.db.vagas.find(x => x.id === id);
+          return { db: { ...s.db, vagas: exists ? s.db.vagas.map(x => x.id === id ? vaga : x) : [...s.db.vagas, vaga] } };
+        });
+        return vaga;
+      },
+      delVaga: (id) => set(s => ({ db: { ...s.db, vagas: s.db.vagas.filter(x => x.id !== id) } })),
+
+      saveAval: (a) => {
+        const id = a.id || uid();
+        const aval: Aval = { ...a, id };
+        set(s => {
+          const exists = s.db.avals.find(x => x.id === id);
+          return { db: { ...s.db, avals: exists ? s.db.avals.map(x => x.id === id ? aval : x) : [...s.db.avals, aval] } };
+        });
+        return aval;
+      },
+      delAval: (id) => set(s => ({ db: { ...s.db, avals: s.db.avals.filter(x => x.id !== id) } })),
+
+      updateRegras: (r) => set(s => ({ db: { ...s.db, regras: r } })),
+
+      exportJSON: () => JSON.stringify(get().db, null, 2),
+      importJSON: (json) => {
+        try {
+          const parsed = JSON.parse(json) as Partial<DB>;
+          const merged: DB = { ...initialDB, ...parsed } as DB;
+          set({ db: merged });
+          return true;
+        } catch {
+          return false;
+        }
+      },
+
       applyCCT: (sindId, ano, perc, dataAplicacao, obs, aplicarEmColabs) => {
         const state = get();
         const sind = state.db.sindicatos.find(s => s.id === sindId);
@@ -188,7 +262,16 @@ export const usePCS = create<PCSStore>()(
     }),
     {
       name: 'optimum-pcs-v6',
+      version: 2,
       storage: createJSONStorage(() => localStorage),
+      migrate: (persisted: unknown, version: number) => {
+        const p = persisted as { db?: Partial<DB> } | null;
+        if (!p) return p as never;
+        if (version < 2 && p.db && !(p.db as DB).regras) {
+          (p.db as DB).regras = initialDB.regras;
+        }
+        return p as never;
+      },
       onRehydrateStorage: () => (state) => {
         if (state) state.ready = true;
       },

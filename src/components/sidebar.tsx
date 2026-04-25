@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { DBTools } from './db-tools';
 
 const NAV: { group: string; items: { href: string; label: string; icon: string }[] }[] = [
   {
@@ -55,7 +56,10 @@ export function Sidebar() {
           </div>
         ))}
       </nav>
-      <div className="sbf">v6.0 · Next 15 · local only</div>
+      <div className="sbf" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}><DBTools /></div>
+        <span>v6.0 · Next 16 · local only</span>
+      </div>
     </aside>
   );
 }

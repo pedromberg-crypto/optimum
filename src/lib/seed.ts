@@ -63,6 +63,13 @@ export const seedDB: DB = {
   ],
   requisitos: [],
   prontidao: {},
+  regras: {
+    cicloAvalMeses: 6,
+    minMesesPromocao: 12,
+    exigirAvalParaPromocao: true,
+    exigirPDIConcluido: true,
+    obs: 'Promoção exige avaliação ≥ 75% da pontuação máxima e PDI concluído. Ciclos de avaliação a cada 6 meses.',
+  },
 };
 
 export function buildSeedWithSalHist(db: DB): DB {

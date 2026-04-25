@@ -113,4 +113,10 @@ body{background:var(--bg);font-family:'Inter',sans-serif;font-size:14px;color:va
 .fbar{display:flex;height:24px;border-radius:6px;overflow:hidden;margin:4px 0}
 .fbseg{display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;color:#fff}
 .bd-tbl{border:1px solid var(--g2);border-radius:var(--r);overflow:hidden}
-.toast{position:fixed;bottom:18px;right:18px;background:var(--g8);color:#fff;border-radius:var(--rs);padding:10px 15px;font-size:12px;z-index:999;box-shadow:var(--shm)}
+.toast-host{position:fixed;bottom:18px;right:18px;display:flex;flex-direction:column;gap:8px;z-index:999;pointer-events:none}
+.toast{background:var(--g8);color:#fff;border-radius:var(--rs);padding:10px 14px;font-size:12px;box-shadow:var(--shm);display:flex;align-items:center;gap:8px;cursor:pointer;pointer-events:auto;opacity:0;transform:translateX(20px);transition:opacity .18s,transform .18s;min-width:220px;max-width:380px}
+.toast.on{opacity:1;transform:translateX(0)}
+.toast.t-ok{background:var(--gr)}
+.toast.t-err{background:var(--re)}
+.toast.t-info{background:var(--bl)}
+.toast .ti{font-size:14px;font-weight:700}

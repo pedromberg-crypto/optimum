@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Card, Gauge, KPI, PageHead } from '@/components/v2/kpi';
 import { EyeToggle } from '@/components/v2/eye-toggle';
-import { colabsAguardandoCCT, getMktStatus, isColabMasked, maskColabFmt } from '@/lib/helpers';
+import { avalVencida, checarElegibilidadePromocao, colabsAguardandoCCT, getMktStatus, isColabMasked, maskColabFmt, pdisProximoVencimento, pdisVencidos } from '@/lib/helpers';
 import { usePCS } from '@/store/use-pcs-store';
 import { useHydratedPCS } from '@/store/use-pcs-hydrated';
 import { useUI } from '@/store/use-ui';
@@ -83,6 +83,9 @@ export default function DashboardV2() {
         <KPI label="Vagas abertas" value={vagas} hint={vagas > 0 ? 'em pipeline' : 'sem demandas'} />
         <KPI label="CCT atrasadas" value={cctAtrasados.length} delta={cctAtrasados.length > 0 ? 'requer ação' : 'tudo em dia'} deltaKind={cctAtrasados.length > 0 ? 'down' : 'up'} />
       </div>
+
+      <AlertasDashboard />
+
 
       <div className="v2-grid-2-3">
         <Card
@@ -191,6 +194,100 @@ export default function DashboardV2() {
           </tbody>
         </table>
       </Card>
+    </div>
+  );
+}
+
+function AlertasDashboard() {
+  const db = usePCS(s => s.db);
+  const elegiveis = db.colabs.filter(c => c.papel !== 'ceo' && checarElegibilidadePromocao(db, c).elegivel);
+  const avaliacoesVencidas = db.colabs.filter(c => c.papel !== 'ceo' && avalVencida(db, c).vencida);
+  const pdisVencimento = pdisProximoVencimento(db, 14);
+  const pdisAtraso = pdisVencidos(db);
+
+  const total = elegiveis.length + avaliacoesVencidas.length + pdisVencimento.length + pdisAtraso.length;
+  if (total === 0) {
+    return (
+      <Card title="Pendências de carreira" sub="Tudo em dia">
+        <div style={{ textAlign: 'center', padding: 20, color: 'var(--g5)', fontSize: 13 }}>
+          Nenhuma pendência · ciclos, PDIs e elegibilidade em dia
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card title="Pendências de carreira & desenvolvimento" sub={`${total} item(ns) requerendo atenção`}>
+      <div className="v2-grid-2" style={{ gap: 12 }}>
+        {elegiveis.length > 0 && (
+          <BlocoAlerta titulo={`${elegiveis.length} elegível(is) para promoção`} cor="var(--gr)" bg="var(--gr0)" linkText="Ver detalhes" linkHref="/v2/colaboradores">
+            {elegiveis.slice(0, 3).map(c => {
+              const ch = checarElegibilidadePromocao(db, c);
+              return (
+                <Link key={c.id} href={`/v2/colab/${c.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--g1)', fontSize: 12 }}>
+                  <span style={{ fontWeight: 500 }}>{c.n}</span>
+                  <span style={{ color: 'var(--g5)' }}>{ch.meses}m no cargo</span>
+                </Link>
+              );
+            })}
+            {elegiveis.length > 3 && <div style={{ fontSize: 11, color: 'var(--g5)', marginTop: 4 }}>+{elegiveis.length - 3} restantes</div>}
+          </BlocoAlerta>
+        )}
+        {avaliacoesVencidas.length > 0 && (
+          <BlocoAlerta titulo={`${avaliacoesVencidas.length} avaliação(ões) vencida(s)`} cor="var(--am)" bg="var(--am0)" linkText="Ver colaboradores" linkHref="/v2/colaboradores">
+            {avaliacoesVencidas.slice(0, 3).map(c => {
+              const av = avalVencida(db, c);
+              return (
+                <Link key={c.id} href={`/v2/colab/${c.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--g1)', fontSize: 12 }}>
+                  <span style={{ fontWeight: 500 }}>{c.n}</span>
+                  <span style={{ color: 'var(--g5)' }}>{av.mesesDesdeUltima === null ? 'sem aval' : `${av.mesesDesdeUltima}m`}</span>
+                </Link>
+              );
+            })}
+            {avaliacoesVencidas.length > 3 && <div style={{ fontSize: 11, color: 'var(--g5)', marginTop: 4 }}>+{avaliacoesVencidas.length - 3} restantes</div>}
+          </BlocoAlerta>
+        )}
+        {pdisAtraso.length > 0 && (
+          <BlocoAlerta titulo={`${pdisAtraso.length} PDI(s) vencido(s)`} cor="var(--re)" bg="var(--re0)" linkText="Ver" linkHref="/v2/colaboradores">
+            {pdisAtraso.slice(0, 3).map(p => {
+              const c = db.colabs.find(x => x.id === p.p);
+              return (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--g1)', fontSize: 12 }}>
+                  <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{c?.n}: {p.o}</span>
+                  <span style={{ color: 'var(--re)' }}>vencido</span>
+                </div>
+              );
+            })}
+            {pdisAtraso.length > 3 && <div style={{ fontSize: 11, color: 'var(--g5)', marginTop: 4 }}>+{pdisAtraso.length - 3} restantes</div>}
+          </BlocoAlerta>
+        )}
+        {pdisVencimento.length > 0 && (
+          <BlocoAlerta titulo={`${pdisVencimento.length} PDI(s) próximos do prazo`} cor="var(--bl)" bg="var(--bl0)" linkText="Ver" linkHref="/v2/colaboradores">
+            {pdisVencimento.slice(0, 3).map(p => {
+              const c = db.colabs.find(x => x.id === p.p);
+              return (
+                <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid var(--g1)', fontSize: 12 }}>
+                  <span style={{ fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60%' }}>{c?.n}: {p.o}</span>
+                  <span style={{ color: 'var(--bl)' }}>{p.pz}</span>
+                </div>
+              );
+            })}
+            {pdisVencimento.length > 3 && <div style={{ fontSize: 11, color: 'var(--g5)', marginTop: 4 }}>+{pdisVencimento.length - 3} restantes</div>}
+          </BlocoAlerta>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+function BlocoAlerta({ titulo, cor, bg, children, linkText, linkHref }: { titulo: string; cor: string; bg: string; children: React.ReactNode; linkText: string; linkHref: string }) {
+  return (
+    <div style={{ background: bg, borderLeft: `3px solid ${cor}`, borderRadius: 8, padding: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <strong style={{ fontSize: 13, color: cor }}>{titulo}</strong>
+        <Link href={linkHref} style={{ fontSize: 11, color: cor, textDecoration: 'none', fontWeight: 600 }}>{linkText} →</Link>
+      </div>
+      {children}
     </div>
   );
 }

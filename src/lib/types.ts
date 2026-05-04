@@ -61,6 +61,9 @@ export interface Colab {
   alvoCargo?: string;
   psPlano?: string;
   psDependentes?: number;
+  dataInicioCargo?: string;
+  gestorId?: string;
+  aspiracao?: string;
 }
 
 export interface PDI {
@@ -93,7 +96,14 @@ export interface Vaga {
   smax: number;
   hard: Skill[];
   soft: Skill[];
+  nivel?: 'I' | 'II' | 'III';
 }
+
+export const NIVEL_LABEL: Record<'I' | 'II' | 'III', string> = {
+  I: 'Júnior',
+  II: 'Pleno',
+  III: 'Sênior',
+};
 
 export type AvalTipo = 'auto' | 'gestor' | '360' | '1:1' | 'ciclo';
 export type CritStatus = 'atende' | 'parcial' | 'nao' | 'na';

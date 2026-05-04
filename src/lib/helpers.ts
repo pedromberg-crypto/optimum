@@ -137,6 +137,73 @@ export function getProximosCargos(db: DB, c: Colab, track?: 'tec' | 'gest'): Car
     .sort((a, b) => (ordemNivel[a.nivel as 'I' | 'II' | 'III'] || 0) - (ordemNivel[b.nivel as 'I' | 'II' | 'III'] || 0));
 }
 
+export function mesesNoCargo(c: Colab): number | null {
+  if (!c.dataInicioCargo) return null;
+  const ini = new Date(c.dataInicioCargo);
+  const hoje = new Date();
+  const months = (hoje.getFullYear() - ini.getFullYear()) * 12 + (hoje.getMonth() - ini.getMonth());
+  return Math.max(0, months);
+}
+
+export function ultimaAvalPct(db: DB, colabId: string): { pct: number; aval: { dt: string; tot: number; max: number; prontidaoPct?: number } } | null {
+  const avals = db.avals.filter(a => a.p === colabId).sort((a, b) => b.dt.localeCompare(a.dt));
+  if (!avals.length) return null;
+  const a = avals[0];
+  const pct = a.max ? Math.round((a.tot / a.max) * 100) : 0;
+  return { pct, aval: a };
+}
+
+export function pdiAbertoCount(db: DB, colabId: string): number {
+  return db.pdis.filter(p => p.p === colabId && p.st !== 'concluido').length;
+}
+
+export interface ElegibilidadeCheck {
+  elegivel: boolean;
+  meses: number | null;
+  okTempo: boolean;
+  okAval: boolean;
+  okPDI: boolean;
+  motivos: string[];
+}
+
+export function checarElegibilidadePromocao(db: DB, c: Colab): ElegibilidadeCheck {
+  const r = db.regras;
+  const meses = mesesNoCargo(c);
+  const okTempo = meses !== null && meses >= r.minMesesPromocao;
+  const u = ultimaAvalPct(db, c.id);
+  const okAval = !r.exigirAvalParaPromocao || (u !== null && u.pct >= 75);
+  const pdiAbertos = pdiAbertoCount(db, c.id);
+  const okPDI = !r.exigirPDIConcluido || pdiAbertos === 0;
+  const motivos: string[] = [];
+  if (!okTempo) motivos.push(meses === null ? 'sem data de início no cargo' : `${meses}/${r.minMesesPromocao} meses no cargo`);
+  if (!okAval) motivos.push(u ? `última aval ${u.pct}% (mín 75%)` : 'sem avaliação registrada');
+  if (!okPDI) motivos.push(`${pdiAbertos} PDI(s) abertos`);
+  return { elegivel: okTempo && okAval && okPDI, meses, okTempo, okAval, okPDI, motivos };
+}
+
+export function avalVencida(db: DB, c: Colab): { vencida: boolean; mesesDesdeUltima: number | null; ciclo: number } {
+  const ciclo = db.regras.cicloAvalMeses;
+  const u = ultimaAvalPct(db, c.id);
+  if (!u) return { vencida: true, mesesDesdeUltima: null, ciclo };
+  const dt = new Date(u.aval.dt);
+  const hoje = new Date();
+  const m = (hoje.getFullYear() - dt.getFullYear()) * 12 + (hoje.getMonth() - dt.getMonth());
+  return { vencida: m >= ciclo, mesesDesdeUltima: m, ciclo };
+}
+
+export function pdisProximoVencimento(db: DB, dias: number = 14): typeof db.pdis {
+  const hoje = new Date().toISOString().slice(0, 10);
+  const limite = new Date();
+  limite.setDate(limite.getDate() + dias);
+  const limiteStr = limite.toISOString().slice(0, 10);
+  return db.pdis.filter(p => p.st !== 'concluido' && p.pz && p.pz >= hoje && p.pz <= limiteStr);
+}
+
+export function pdisVencidos(db: DB): typeof db.pdis {
+  const hoje = new Date().toISOString().slice(0, 10);
+  return db.pdis.filter(p => p.st !== 'concluido' && p.pz && p.pz < hoje);
+}
+
 export function classifySal(c: Colab, faixa: { p: number; a: number; t: number } | null): { label: string; cor: string; bg: string } {
   if (!faixa || !c.sal) return { label: '—', cor: 'var(--g4)', bg: 'var(--g1)' };
   if (c.sal < faixa.p) return { label: 'Abaixo do piso', cor: 'var(--re)', bg: 'var(--re0)' };

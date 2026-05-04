@@ -123,14 +123,30 @@ export function ColabFormV2({ open, colab, onClose }: { open: boolean; colab: Co
             <input className="fi" value={form.ar} onChange={e => setForm(f => ({ ...f, ar: e.target.value }))} placeholder={familiaSelecionada?.n || 'Auto pelo cargo'} />
           </Field>
         </div>
-        <div className="fr2">
+        <div className="fr3">
           <Field label="Vínculo">
             <select className="fs" value={form.vi} onChange={e => setForm(f => ({ ...f, vi: e.target.value as Vinculo }))}>
               {VINCULOS.map(v => <option key={v}>{v}</option>)}
             </select>
           </Field>
+          <Field label="Data início no cargo">
+            <input className="fi" type="date" value={form.dataInicioCargo || ''} onChange={e => setForm(f => ({ ...f, dataInicioCargo: e.target.value || undefined }))} />
+          </Field>
           <Field label="Squad / Time">
             <input className="fi" value={form.sq || ''} onChange={e => setForm(f => ({ ...f, sq: e.target.value }))} />
+          </Field>
+        </div>
+        <div className="fr2">
+          <Field label="Gestor direto">
+            <select className="fs" value={form.gestorId || ''} onChange={e => setForm(f => ({ ...f, gestorId: e.target.value || undefined }))}>
+              <option value="">— Sem gestor definido</option>
+              {db.colabs.filter(c => c.id !== form.id).map(c => (
+                <option key={c.id} value={c.id}>{c.n} · {c.ca}</option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Mentor / Par (opcional)">
+            <input className="fi" value={form.par || ''} onChange={e => setForm(f => ({ ...f, par: e.target.value }))} />
           </Field>
         </div>
       </Section>
@@ -234,8 +250,8 @@ export function ColabFormV2({ open, colab, onClose }: { open: boolean; colab: Co
           </>
         )}
         <div style={{ marginTop: 10 }}>
-          <Field label="Mentor / Par (opcional)">
-            <input className="fi" value={form.par || ''} onChange={e => setForm(f => ({ ...f, par: e.target.value }))} />
+          <Field label="Aspiração de carreira (declarada pelo colab)">
+            <input className="fi" value={form.aspiracao || ''} onChange={e => setForm(f => ({ ...f, aspiracao: e.target.value }))} placeholder="Ex: Quero ir pra Tech Lead em 2 anos / Quero migrar pra área de dados…" />
           </Field>
         </div>
       </Section>

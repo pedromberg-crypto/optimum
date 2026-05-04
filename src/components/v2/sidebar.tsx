@@ -16,11 +16,11 @@ export function SidebarV2() {
 
   return (
     <aside className="v2-sb">
-      <Link href="/" className="v2-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
+      <Link href="/v2" className="v2-brand" style={{ textDecoration: 'none', color: 'inherit' }}>
         <div className="v2-bi">O</div>
         <div>
           <div className="v2-bn">Optimum</div>
-          <div className="v2-bs">v2</div>
+          <div className="v2-bs">PCS · Carreira · PDI</div>
         </div>
       </Link>
 
@@ -45,9 +45,6 @@ export function SidebarV2() {
         <div className="v2-ng" style={{ marginTop: 8 }}>Configuração</div>
         <Link href="/v2/config" className={`v2-na${isActive('/v2/config') ? ' on' : ''}`}>
           <span className="v2-icon"></span>Política & Regras
-        </Link>
-        <Link href="/" className="v2-na">
-          <span className="v2-icon"></span>Trocar versão
         </Link>
       </nav>
 

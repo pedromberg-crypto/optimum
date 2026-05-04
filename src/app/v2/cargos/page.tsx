@@ -10,7 +10,7 @@ import { EyeToggle } from '@/components/v2/eye-toggle';
 import { usePCS } from '@/store/use-pcs-store';
 import { useHydratedPCS } from '@/store/use-pcs-hydrated';
 import { useUI } from '@/store/use-ui';
-import type { Cargo, CargoTrack, Familia, Skill, Vaga, VagaPrio } from '@/lib/types';
+import { NIVEL_LABEL, type Cargo, type CargoTrack, type Familia, type Skill, type Vaga, type VagaPrio } from '@/lib/types';
 
 type Tab = 'matriz' | 'familias' | 'vagas';
 
@@ -224,16 +224,25 @@ export default function CargosV2() {
       {tab === 'vagas' && (
         <Card title={`${totalVagas} vaga(s) aberta(s)`} sub="Headcount aprovado / pipeline de contratação">
           <table className="v2-tbl">
-            <thead><tr><th>Cargo</th><th>Área</th><th>Prioridade</th><th>Prazo</th><th>Vínculo</th><th>Faixa</th><th>Skills</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Cargo</th><th>Posição</th><th>Área</th><th>Prioridade</th><th>Prazo</th><th>Vínculo</th><th>Faixa</th><th>Skills</th><th>Ações</th></tr></thead>
             <tbody>
-              {db.vagas.map(v => (
+              {db.vagas.map(v => {
+                const nivelInferido = v.nivel || db.cargos.find(k => k.n === v.cargo)?.nivel;
+                return (
                 <tr key={v.id}>
                   <td><strong>{v.cargo}</strong><div style={{ fontSize: 11, color: 'var(--g5)', maxWidth: 280 }}>{v.just}</div></td>
+                  <td>
+                    {nivelInferido ? (
+                      <span className={`v2-chip ${nivelInferido === 'III' ? 'v2-chip-pu' : nivelInferido === 'II' ? 'v2-chip-am' : 'v2-chip-gr'}`}>
+                        {NIVEL_LABEL[nivelInferido as 'I' | 'II' | 'III']}
+                      </span>
+                    ) : <span style={{ color: 'var(--g4)' }}>—</span>}
+                  </td>
                   <td>{v.area}</td>
                   <td><span className={`v2-chip ${v.prio === 'critica' ? 'v2-chip-re' : v.prio === 'media' ? 'v2-chip-am' : 'v2-chip-gr'}`}>{v.prio}</span></td>
                   <td>{fd(v.prazo)}</td>
                   <td><span className="v2-chip">{v.vinculo}</span></td>
-                  <td>{fmt(v.smin)} – {fmt(v.smax)}</td>
+                  <td>{maskFmt(v.smin, oculto)} – {maskFmt(v.smax, oculto)}</td>
                   <td><span style={{ fontSize: 11 }}>{v.hard.length} hard · {v.soft.length} soft</span></td>
                   <td>
                     <button className="v2-btn v2-btn-o v2-btn-sm" onClick={() => { setVagaEdit(v); setVagaOpen(true); }}>Editar</button>
@@ -241,8 +250,9 @@ export default function CargosV2() {
                     <button className="v2-btn v2-btn-o v2-btn-sm" style={{ color: 'var(--re)' }} onClick={() => { if (confirm('Excluir vaga?')) { delVaga(v.id); toast.push('Vaga excluída', 'info'); } }}>×</button>
                   </td>
                 </tr>
-              ))}
-              {!totalVagas && <tr><td colSpan={8} style={{ textAlign: 'center', color: 'var(--g4)', padding: 24 }}>Nenhuma vaga aberta</td></tr>}
+                );
+              })}
+              {!totalVagas && <tr><td colSpan={9} style={{ textAlign: 'center', color: 'var(--g4)', padding: 24 }}>Nenhuma vaga aberta</td></tr>}
             </tbody>
           </table>
         </Card>
@@ -338,9 +348,17 @@ function VagaModal({ open, editing, onClose, onSave }: { open: boolean; editing:
         onSave({ ...form, id: form.id || uid() });
       }}>Salvar</Button></>}
     >
-      <div className="fr2">
+      <div className="fr3">
         <div className="fg"><label className="fl">Cargo</label><input className="fi" value={form.cargo} onChange={e => setForm(f => ({ ...f, cargo: e.target.value }))} /></div>
         <div className="fg"><label className="fl">Área</label><input className="fi" value={form.area} onChange={e => setForm(f => ({ ...f, area: e.target.value }))} /></div>
+        <div className="fg"><label className="fl">Posição (nível)</label>
+          <select className="fs" value={form.nivel || ''} onChange={e => setForm(f => ({ ...f, nivel: (e.target.value || undefined) as 'I' | 'II' | 'III' | undefined }))}>
+            <option value="">— Auto pelo cargo</option>
+            <option value="I">Júnior (I)</option>
+            <option value="II">Pleno (II)</option>
+            <option value="III">Sênior (III)</option>
+          </select>
+        </div>
       </div>
       <div className="fr3">
         <div className="fg"><label className="fl">Prioridade</label>

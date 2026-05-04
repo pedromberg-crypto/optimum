@@ -22,12 +22,14 @@ export default function ColaboradoresV2() {
   const [busca, setBusca] = useState('');
   const [filtroVi, setFiltroVi] = useState('');
   const [filtroPdi, setFiltroPdi] = useState<'' | PDIStatus | 'sem'>('');
+  const [filtroGestor, setFiltroGestor] = useState('');
 
   if (!hydrated) return <div className="v2-page">Carregando…</div>;
 
   const lista = db.colabs.filter(c => {
     if (busca && !c.n.toLowerCase().includes(busca.toLowerCase()) && !c.ca.toLowerCase().includes(busca.toLowerCase()) && !c.ar.toLowerCase().includes(busca.toLowerCase())) return false;
     if (filtroVi && c.vi !== filtroVi) return false;
+    if (filtroGestor && c.gestorId !== filtroGestor) return false;
     if (filtroPdi) {
       const pdis = db.pdis.filter(p => p.p === c.id);
       if (filtroPdi === 'sem' && pdis.length > 0) return false;
@@ -35,6 +37,9 @@ export default function ColaboradoresV2() {
     }
     return true;
   });
+
+  const gestores = Array.from(new Set(db.colabs.map(c => c.gestorId).filter(Boolean) as string[]))
+    .map(id => db.colabs.find(c => c.id === id)).filter(Boolean) as typeof db.colabs;
 
   const total = db.colabs.length;
   const ativos = db.colabs.filter(c => c.papel !== 'ceo').length;
@@ -79,6 +84,12 @@ export default function ColaboradoresV2() {
             <option value="concluido">PDI concluído</option>
             <option value="sem">Sem PDI</option>
           </select>
+          {gestores.length > 0 && (
+            <select className="fs" value={filtroGestor} onChange={e => setFiltroGestor(e.target.value)} style={{ width: 220 }}>
+              <option value="">Gestor · todos</option>
+              {gestores.map(g => <option key={g.id} value={g.id}>Time de {g.n}</option>)}
+            </select>
+          )}
         </div>
 
         <table className="v2-tbl">

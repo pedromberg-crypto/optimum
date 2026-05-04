@@ -8,7 +8,7 @@ import { Card, KPI, PageHead } from '@/components/v2/kpi';
 import { Tabs } from '@/components/v2/tabs';
 import { ColabFormV2 } from '@/components/v2/colab-form';
 import { useToast } from '@/components/toast';
-import { fd, fmt, getCargoFaixa, getMktStatus, getProximosCargos, getSalHist, getSindicatoDoColab, inferCargoTrack, isColabMasked, maskColabFmt, statusCCTColab, uid } from '@/lib/helpers';
+import { checarElegibilidadePromocao, fd, fmt, getCargoFaixa, getMktStatus, getProximosCargos, getSalHist, getSindicatoDoColab, inferCargoTrack, isColabMasked, maskColabFmt, mesesNoCargo, statusCCTColab, uid } from '@/lib/helpers';
 import { useUI } from '@/store/use-ui';
 import { EyeToggle } from '@/components/v2/eye-toggle';
 import { COMPS_PADRAO_COMPORTAMENTAL, CRIT_STATUS_LABEL, MOTIVOS_REAJUSTE, TIPO_AVAL_LABEL, TRILHA_INFO, type Aval, type AvalTipo, type Colab, type CompAval, type CritProgAval, type CritStatus, type PDI, type PDIStatus, type PDITipo } from '@/lib/types';
@@ -98,6 +98,7 @@ export default function ColabHubV2({ params }: { params: Promise<{ id: string }>
             <Row l="Área">{c.ar}</Row>
             <Row l="Vínculo">{c.vi}</Row>
             <Row l="Squad / Time">{c.sq || '—'}</Row>
+            <Row l="Gestor direto">{c.gestorId ? db.colabs.find(g => g.id === c.gestorId)?.n || '—' : '—'}</Row>
             <Row l="Mentor / Par">{c.par || '—'}</Row>
             <Row l="Estado">{c.es || '—'}</Row>
             <Row l="Papel sistema">{c.papel || 'colaborador'}</Row>
@@ -259,6 +260,8 @@ function CarreiraTab({ colabId }: { colabId: string }) {
   const c = db.colabs.find(x => x.id === colabId)!;
   const cargoAtual = db.cargos.find(k => k.n === c.ca);
   const familia = cargoAtual ? db.familias.find(f => f.id === cargoAtual.fam) : null;
+  const meses = mesesNoCargo(c);
+  const elegib = checarElegibilidadePromocao(db, c);
 
   const branchFromAlvo = (alvo?: string): 'tec' | 'gest' | null => {
     if (!alvo) return null;
@@ -284,7 +287,7 @@ function CarreiraTab({ colabId }: { colabId: string }) {
         {cargoAtual ? (
           <>
             <div style={{ padding: 14, background: 'var(--pu0)', borderRadius: 10, marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                 <NivelBadge nivel={cargoAtual.nivel} />
                 <strong style={{ fontSize: 16, color: 'var(--pu)' }}>{cargoAtual.n}</strong>
                 <span className={`v2-chip ${inferCargoTrack(cargoAtual) === 'gest' ? 'v2-chip-bl' : 'v2-chip-te'}`}>
@@ -292,13 +295,52 @@ function CarreiraTab({ colabId }: { colabId: string }) {
                 </span>
               </div>
               <div style={{ fontSize: 12, color: 'var(--g6)', marginTop: 8 }}>{cargoAtual.desc}</div>
-              <div style={{ marginTop: 10, fontSize: 11, color: 'var(--g5)' }}>
-                Faixa: <strong>{fmt(cargoAtual.piso)} – {fmt(cargoAtual.teto)}</strong>
+              <div style={{ marginTop: 10, fontSize: 11, color: 'var(--g5)', display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+                <span>Faixa: <strong>{fmt(cargoAtual.piso)} – {fmt(cargoAtual.teto)}</strong></span>
+                <span>Tempo no cargo: <strong>{meses === null ? 'sem data' : `${meses} meses`}</strong></span>
               </div>
             </div>
+
+            <div style={{ padding: 12, background: elegib.elegivel ? 'var(--gr0)' : '#fafbfd', border: `1px solid ${elegib.elegivel ? 'var(--gr2)' : '#eef0f5'}`, borderRadius: 10, marginBottom: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <strong style={{ fontSize: 13, color: elegib.elegivel ? 'var(--gr)' : 'var(--g7)' }}>
+                  {elegib.elegivel ? 'Elegível para promoção' : 'Não elegível para promoção'}
+                </strong>
+                <span className={`v2-chip ${elegib.elegivel ? 'v2-chip-gr' : ''}`}>{elegib.elegivel ? 'Apto' : 'Pendente'}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Tempo mínimo no cargo ({db.regras.minMesesPromocao} meses)</span>
+                  <span style={{ color: elegib.okTempo ? 'var(--gr)' : 'var(--re)', fontWeight: 600 }}>{elegib.okTempo ? 'OK' : 'Pendente'}</span>
+                </div>
+                {db.regras.exigirAvalParaPromocao && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>Avaliação positiva (≥75%)</span>
+                    <span style={{ color: elegib.okAval ? 'var(--gr)' : 'var(--re)', fontWeight: 600 }}>{elegib.okAval ? 'OK' : 'Pendente'}</span>
+                  </div>
+                )}
+                {db.regras.exigirPDIConcluido && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>PDIs concluídos</span>
+                    <span style={{ color: elegib.okPDI ? 'var(--gr)' : 'var(--re)', fontWeight: 600 }}>{elegib.okPDI ? 'OK' : 'Pendente'}</span>
+                  </div>
+                )}
+              </div>
+              {elegib.motivos.length > 0 && (
+                <div style={{ marginTop: 8, fontSize: 11, color: 'var(--g5)' }}>
+                  Faltam: {elegib.motivos.join(' · ')}
+                </div>
+              )}
+            </div>
+
+            {c.aspiracao && (
+              <div style={{ padding: 10, background: 'var(--bl0)', borderRadius: 8, fontSize: 12, color: 'var(--bl)', marginBottom: 8 }}>
+                <strong>Aspiração do colaborador:</strong> {c.aspiracao}
+              </div>
+            )}
             {c.alvoCargo && (
-              <div style={{ padding: 10, background: 'var(--gr0)', borderRadius: 8, fontSize: 12, color: 'var(--gr)' }}>
-                Alvo definido: <strong>{c.alvoCargo}</strong>
+              <div style={{ padding: 10, background: 'var(--pu0)', borderRadius: 8, fontSize: 12, color: 'var(--pu)' }}>
+                Alvo definido pelo gestor: <strong>{c.alvoCargo}</strong>
               </div>
             )}
           </>
@@ -820,7 +862,87 @@ function AvalTab({ colabId, avals }: { colabId: string; avals: Aval[] }) {
 
 function AvalCard({ aval, colab, onEdit, onDel }: { aval: Aval; colab?: Colab; onEdit: () => void; onDel: () => void }) {
   const db = usePCS(s => s.db);
+  const savePDI = usePCS(s => s.savePDI);
+  const toast = useToast();
   const [expandido, setExpandido] = useState(false);
+
+  const gerarPDIs = () => {
+    if (!colab) return;
+    const novos: PDI[] = [];
+    const prazoPad = (() => {
+      const d = new Date(); d.setDate(d.getDate() + 90);
+      return d.toISOString().slice(0, 10);
+    })();
+
+    (aval.criterios || []).forEach(cr => {
+      if (cr.status === 'nao' || cr.status === 'parcial') {
+        novos.push({
+          id: uid(), p: colab.id,
+          o: `Atingir critério: ${cr.desc.slice(0, 80)}`,
+          a: cr.obs || `Trabalhar para atender o critério de progressão pro cargo ${aval.proximoCargo || 'alvo'}`,
+          pz: prazoPad, t: 'ent', st: 'pendente',
+          r: '', m: cr.status === 'parcial' ? 'Status atual: parcial · meta: atende' : 'Status atual: não atende · meta: atende',
+        });
+      }
+    });
+
+    (aval.competencias || []).forEach(c => {
+      if (c.nota < 3) {
+        novos.push({
+          id: uid(), p: colab.id,
+          o: `Desenvolver competência: ${c.nome}`,
+          a: c.obs || `Plano de desenvolvimento para a competência ${c.nome}`,
+          pz: prazoPad,
+          t: c.categoria === 'tecnica' ? 'hard' : 'soft',
+          st: 'pendente',
+          r: '',
+          m: `Nota atual: ${c.nota}/5 · meta: ≥4/5`,
+        });
+      }
+    });
+
+    if (aval.desenvolver?.trim()) {
+      const linhas = aval.desenvolver.split('\n').map(l => l.trim()).filter(Boolean);
+      linhas.forEach(l => {
+        novos.push({
+          id: uid(), p: colab.id,
+          o: l.slice(0, 80),
+          a: l,
+          pz: prazoPad, t: 'soft', st: 'pendente', r: '', m: '',
+        });
+      });
+    }
+
+    if (aval.recomendacoes?.trim()) {
+      const linhas = aval.recomendacoes.split('\n').map(l => l.trim()).filter(Boolean);
+      linhas.forEach(l => {
+        novos.push({
+          id: uid(), p: colab.id,
+          o: l.slice(0, 80),
+          a: l,
+          pz: prazoPad, t: 'ent', st: 'pendente', r: '', m: '',
+        });
+      });
+    }
+
+    if (novos.length === 0) {
+      toast.push('Nenhum gap encontrado nesta avaliação para gerar PDI', 'info');
+      return;
+    }
+
+    if (!confirm(`Gerar ${novos.length} PDI(s) a partir desta avaliação?\n\n· Critérios pendentes/parciais → entregas\n· Competências < 3/5 → hard/soft skill\n· Pontos a desenvolver → soft\n· Recomendações → entregas\n\nPrazo padrão: 90 dias`)) return;
+    novos.forEach(p => savePDI(p));
+    toast.push(`${novos.length} PDI(s) criado(s) na aba PDI`, 'ok');
+  };
+
+  const podeGerar = !!colab && (
+    (aval.criterios || []).some(c => c.status === 'nao' || c.status === 'parcial') ||
+    (aval.competencias || []).some(c => c.nota < 3) ||
+    !!aval.desenvolver?.trim() ||
+    !!aval.recomendacoes?.trim()
+  );
+
+
   const pct = aval.max ? Math.round((aval.tot / aval.max) * 100) : 0;
   const avaliador = aval.avaliadorId ? db.colabs.find(c => c.id === aval.avaliadorId) : null;
   const cargoAlvo = aval.proximoCargo ? db.cargos.find(k => k.n === aval.proximoCargo) : null;
@@ -870,8 +992,9 @@ function AvalCard({ aval, colab, onEdit, onDel }: { aval: Aval; colab?: Colab; o
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
           <button className="v2-btn v2-btn-o v2-btn-sm" onClick={() => setExpandido(!expandido)}>{expandido ? '▲ Recolher' : '▼ Detalhes'}</button>
+          {podeGerar && <button className="v2-btn v2-btn-p v2-btn-sm" onClick={gerarPDIs} title="Cria PDIs automaticamente a partir dos critérios pendentes, competências fracas e textos de desenvolvimento">→ Gerar PDIs</button>}
           {colab && <button className="v2-btn v2-btn-o v2-btn-sm" onClick={() => gerarRelatorioAval(colab, aval, db)} title="Baixar relatório (PDF via impressão)">↓ Relatório</button>}
           <button className="v2-btn v2-btn-o v2-btn-sm" onClick={onEdit}>Editar</button>
           <button className="v2-btn v2-btn-o v2-btn-sm" style={{ color: 'var(--re)' }} onClick={onDel}>×</button>

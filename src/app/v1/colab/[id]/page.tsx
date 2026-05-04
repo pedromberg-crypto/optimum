@@ -4,7 +4,7 @@ import { use, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Avatar, Badge, Button, Card, FaixaBar, MktBadge, NivelBadge, Page, Topbar } from '@/components/ui';
-import { ColabModal } from '@/components/colab-modal';
+import { ColabModal } from '@/components/v1/colab-modal';
 import { fd, fmt, getCargoFaixa, getMktStatus, getSalHist, getSindicatoDoColab, statusCCTColab } from '@/lib/helpers';
 import { MOTIVOS_REAJUSTE } from '@/lib/types';
 import { usePCS } from '@/store/use-pcs-store';
@@ -24,7 +24,7 @@ export default function ColabFichaPage({ params }: { params: Promise<{ id: strin
     return (
       <>
         <Topbar title="Colaborador não encontrado" />
-        <Page><Card><Link href="/time">← Voltar para Time</Link></Card></Page>
+        <Page><Card><Link href="/v1/time">← Voltar para Time</Link></Card></Page>
       </>
     );
   }
@@ -43,7 +43,7 @@ export default function ColabFichaPage({ params }: { params: Promise<{ id: strin
         title="Ficha 360°"
         right={
           <>
-            <Button kind="o" size="sm" onClick={() => router.push('/time')}>← Time</Button>
+            <Button kind="o" size="sm" onClick={() => router.push('/v1/time')}>← Time</Button>
             {' '}
             <Button size="sm" onClick={() => setEditOpen(true)}>Editar</Button>
           </>
@@ -110,7 +110,7 @@ export default function ColabFichaPage({ params }: { params: Promise<{ id: strin
                     Data-base: {fd(stCCT.dataBaseAno)} · {stCCT.atrasada ? `${Math.abs(stCCT.dias!)}d em atraso` : `em ${stCCT.dias}d`}
                   </div>
                 </div>
-                <Link href="/cct"><Button size="sm">Aplicar agora</Button></Link>
+                <Link href="/v1/cct"><Button size="sm">Aplicar agora</Button></Link>
               </div>
             )}
           </Card>
@@ -154,7 +154,7 @@ export default function ColabFichaPage({ params }: { params: Promise<{ id: strin
                 </tbody>
               </table>
             </div>
-          ) : <div style={{ color: 'var(--g4)' }}>Sem PDIs registrados — <Link href="/pdi">criar</Link></div>}
+          ) : <div style={{ color: 'var(--g4)' }}>Sem PDIs registrados — <Link href="/v1/pdi">criar</Link></div>}
         </Card>
 
         {c.ov && (

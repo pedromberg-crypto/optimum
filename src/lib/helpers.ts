@@ -5,6 +5,14 @@ export const uid = () => 'x' + Math.random().toString(36).slice(2, 11);
 export const ini = (n: string) => n.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase();
 export const ac = (i: number) => AVC[i % AVC.length];
 export const fmt = (n: number | null | undefined) => n ? 'R$ ' + Number(n).toLocaleString('pt-BR') : '—';
+export const maskFmt = (n: number | null | undefined, oculto: boolean) => oculto ? 'R$ •••••' : fmt(n);
+export const maskTxt = (txt: string, oculto: boolean) => oculto ? '•••' : txt;
+export const maskColabFmt = (n: number | null | undefined, colabId: string, oculto: boolean, revelados: string[]) =>
+  (oculto && !revelados.includes(colabId)) ? 'R$ •••••' : fmt(n);
+export const maskColabTxt = (txt: string, colabId: string, oculto: boolean, revelados: string[]) =>
+  (oculto && !revelados.includes(colabId)) ? '•••' : txt;
+export const isColabMasked = (colabId: string, oculto: boolean, revelados: string[]) =>
+  oculto && !revelados.includes(colabId);
 export const fd = (d: string | null | undefined) => {
   if (!d) return '—';
   const p = d.split('-');
@@ -71,6 +79,7 @@ export interface StatusCCT {
 }
 
 export function statusCCTColab(db: DB, c: Colab, ano?: number): StatusCCT | null {
+  if (c.vi !== 'CLT') return null;
   const sind = getSindicatoDoColab(db, c);
   if (!sind) return null;
   const y = ano || new Date().getFullYear();
@@ -106,6 +115,26 @@ export function isNivelIII(db: DB, cargo: string): boolean {
 export function lvlOfCargo(db: DB, cargo: string): 'I' | 'II' | 'III' | null {
   const k = db.cargos.find(c => c.n === cargo);
   return k?.nivel || null;
+}
+
+export function inferCargoTrack(cargo: Cargo): 'tec' | 'gest' {
+  if (cargo.track) return cargo.track;
+  const n = (cargo.n || '').toLowerCase();
+  const gestKeywords = ['gestor', 'gestora', 'head', 'diretor', 'diretora', 'coord', 'lead', 'gerente', 'líder', 'lider', 'sócio', 'socio', 'ceo', 'cto', 'cfo', 'cpo'];
+  return gestKeywords.some(k => n.includes(k)) ? 'gest' : 'tec';
+}
+
+export function getProximosCargos(db: DB, c: Colab, track?: 'tec' | 'gest'): Cargo[] {
+  const atual = db.cargos.find(k => k.n === c.ca);
+  if (!atual) return [];
+  const ordemNivel = { I: 1, II: 2, III: 3 };
+  const nivelAtual = ordemNivel[atual.nivel as 'I' | 'II' | 'III'] || 1;
+  return db.cargos
+    .filter(k => k.fam === atual.fam)
+    .filter(k => k.id !== atual.id)
+    .filter(k => (ordemNivel[k.nivel as 'I' | 'II' | 'III'] || 0) >= nivelAtual)
+    .filter(k => !track || inferCargoTrack(k) === track)
+    .sort((a, b) => (ordemNivel[a.nivel as 'I' | 'II' | 'III'] || 0) - (ordemNivel[b.nivel as 'I' | 'II' | 'III'] || 0));
 }
 
 export function classifySal(c: Colab, faixa: { p: number; a: number; t: number } | null): { label: string; cor: string; bg: string } {

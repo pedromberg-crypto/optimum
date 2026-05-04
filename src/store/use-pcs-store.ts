@@ -262,13 +262,26 @@ export const usePCS = create<PCSStore>()(
     }),
     {
       name: 'optimum-pcs-v6',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => localStorage),
       migrate: (persisted: unknown, version: number) => {
         const p = persisted as { db?: Partial<DB> } | null;
         if (!p) return p as never;
         if (version < 2 && p.db && !(p.db as DB).regras) {
           (p.db as DB).regras = initialDB.regras;
+        }
+        if (version < 3 && p.db) {
+          const sinds = (p.db as DB).sindicatos || [];
+          for (const s of sinds) {
+            if (s.sigla === 'SINDPD-MG') {
+              s.sigla = 'SINDADOS';
+              s.nome = 'SINDADOS (Sind. dos Profissionais de Processamento de Dados)';
+            }
+            if (s.sigla === 'SINDICOM') {
+              s.sigla = 'SINDIFOR';
+              s.nome = 'SINDIFOR (Sind. das Empresas de Informática)';
+            }
+          }
         }
         return p as never;
       },

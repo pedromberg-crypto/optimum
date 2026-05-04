@@ -10,14 +10,14 @@ import type { Aval } from '@/lib/types';
 
 interface BoxCell { perf: 1 | 2 | 3; pot: 1 | 2 | 3; label: string; col: string }
 const BOXES: BoxCell[] = [
-  { perf: 1, pot: 3, label: 'Enigma', col: 'var(--am)' },
-  { perf: 2, pot: 3, label: 'Future Star', col: 'var(--bl)' },
-  { perf: 3, pot: 3, label: 'Star ⭐', col: 'var(--gr)' },
+  { perf: 1, pot: 3, label: 'A desenvolver', col: 'var(--am)' },
+  { perf: 2, pot: 3, label: 'Promessa', col: 'var(--bl)' },
+  { perf: 3, pot: 3, label: 'Talento estrela', col: 'var(--gr)' },
   { perf: 1, pot: 2, label: 'Inconsistente', col: 'var(--re)' },
-  { perf: 2, pot: 2, label: 'Core', col: 'var(--te)' },
-  { perf: 3, pot: 2, label: 'High Impact', col: 'var(--gr)' },
-  { perf: 1, pot: 1, label: 'Em risco', col: 'var(--re)' },
-  { perf: 2, pot: 1, label: 'Sólido', col: 'var(--g5)' },
+  { perf: 2, pot: 2, label: 'Mantenedor', col: 'var(--te)' },
+  { perf: 3, pot: 2, label: 'Alto desempenho', col: 'var(--gr)' },
+  { perf: 1, pot: 1, label: 'Insuficiente', col: 'var(--re)' },
+  { perf: 2, pot: 1, label: 'Eficaz', col: 'var(--g5)' },
   { perf: 3, pot: 1, label: 'Especialista', col: 'var(--pu)' },
 ];
 

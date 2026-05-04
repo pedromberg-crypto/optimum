@@ -82,7 +82,7 @@ export default function CCTPage() {
                 {pendentes.map(({ c, st }, i) => (
                   <tr key={c.id}>
                     <td>
-                      <Link href={`/colab/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit', textDecoration: 'none' }}>
+                      <Link href={`/v1/colab/${c.id}`} style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'inherit', textDecoration: 'none' }}>
                         <Avatar name={c.n} idx={i} size={26} /> {c.n}
                       </Link>
                     </td>

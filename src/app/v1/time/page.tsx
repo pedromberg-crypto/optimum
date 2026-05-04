@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Avatar, Badge, Button, Card, MktBadge, NivelBadge, Page, Topbar } from '@/components/ui';
-import { ColabModal } from '@/components/colab-modal';
+import { ColabModal } from '@/components/v1/colab-modal';
 import { fmt, getMktStatus } from '@/lib/helpers';
 import { usePCS } from '@/store/use-pcs-store';
 import { useHydratedPCS } from '@/store/use-pcs-hydrated';
@@ -39,7 +39,7 @@ export default function TimePage() {
                   const nivel = db.cargos.find(k => k.n === c.ca)?.nivel || null;
                   return (
                     <tr key={c.id}>
-                      <td onClick={() => router.push(`/colab/${c.id}`)} style={{ cursor: 'pointer' }}>
+                      <td onClick={() => router.push(`/v1/colab/${c.id}`)} style={{ cursor: 'pointer' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Avatar name={c.n} idx={i} size={28} />
                           <span>{c.n}</span>

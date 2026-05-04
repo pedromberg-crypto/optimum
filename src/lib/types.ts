@@ -17,6 +17,8 @@ export interface Familia {
   desc: string;
 }
 
+export type CargoTrack = 'tec' | 'gest';
+
 export interface Cargo {
   id: string;
   fam: string;
@@ -28,6 +30,7 @@ export interface Cargo {
   teto: number;
   req: string;
   prog: string;
+  track?: CargoTrack;
 }
 
 export interface Colab {
@@ -49,6 +52,15 @@ export interface Colab {
   ps?: Ps;
   ho?: number;
   bouts?: string;
+  cvNome?: string;
+  cvData?: string;
+  cvTipo?: string;
+  formacao?: string;
+  cursos?: string;
+  competenciasAtuais?: string;
+  alvoCargo?: string;
+  psPlano?: string;
+  psDependentes?: number;
 }
 
 export interface PDI {
@@ -83,6 +95,25 @@ export interface Vaga {
   soft: Skill[];
 }
 
+export type AvalTipo = 'auto' | 'gestor' | '360' | '1:1' | 'ciclo';
+export type CritStatus = 'atende' | 'parcial' | 'nao' | 'na';
+export type CompCategoria = 'comportamental' | 'tecnica';
+
+export interface CompAval {
+  id: string;
+  nome: string;
+  categoria: CompCategoria;
+  nota: number;
+  obs?: string;
+}
+
+export interface CritProgAval {
+  id: string;
+  desc: string;
+  status: CritStatus;
+  obs?: string;
+}
+
 export interface Aval {
   id: string;
   p: string;
@@ -92,7 +123,40 @@ export interface Aval {
   proxima?: string;
   prontidaoPct?: number;
   notas?: Record<string, number>;
+  avaliadorId?: string;
+  tipo?: AvalTipo;
+  cargoNaData?: string;
+  proximoCargo?: string;
+  competencias?: CompAval[];
+  criterios?: CritProgAval[];
+  fortes?: string;
+  desenvolver?: string;
+  recomendacoes?: string;
 }
+
+export const COMPS_PADRAO_COMPORTAMENTAL: { nome: string }[] = [
+  { nome: 'Comunicação' },
+  { nome: 'Colaboração / Time' },
+  { nome: 'Autonomia' },
+  { nome: 'Ownership / Responsabilidade' },
+  { nome: 'Adaptabilidade' },
+  { nome: 'Aprendizagem contínua' },
+];
+
+export const TIPO_AVAL_LABEL: Record<AvalTipo, string> = {
+  auto: 'Autoavaliação',
+  gestor: 'Avaliação do gestor',
+  '360': 'Avaliação 360°',
+  '1:1': '1:1 / informal',
+  ciclo: 'Ciclo formal',
+};
+
+export const CRIT_STATUS_LABEL: Record<CritStatus, { label: string; col: string; bg: string; chip: string }> = {
+  atende: { label: 'Atende', col: 'var(--gr)', bg: 'var(--gr0)', chip: 'gr' },
+  parcial: { label: 'Parcial', col: 'var(--am)', bg: 'var(--am0)', chip: 'am' },
+  nao: { label: 'Não atende', col: 'var(--re)', bg: 'var(--re0)', chip: 're' },
+  na: { label: 'N/A', col: 'var(--g5)', bg: 'var(--g1)', chip: 'gr' },
+};
 
 export interface SalHist {
   id: string;

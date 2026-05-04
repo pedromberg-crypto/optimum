@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Button, Modal } from './ui';
+import { Button, Modal } from '../ui';
 import { usePCS } from '@/store/use-pcs-store';
 import { uid } from '@/lib/helpers';
 import { MOTIVOS_REAJUSTE, type Colab, type MotivoReajuste, type Papel, type TrilhaKey } from '@/lib/types';
